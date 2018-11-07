@@ -31,6 +31,12 @@ export class RequestRouter {
         this.lastFetched = store.requestRouter.serviceEngines.lastFetched;
     }
 
+    private stopSe() {
+        this.serviceEngines.forEach((se) => {
+            console.log('TODO kill TCP sessions and stuff on ', se);
+        });
+    }
+  
     private fetchSes() {
         this.store.dispatch(fetchServiceEnginesRequest());
     }
@@ -52,7 +58,7 @@ export class RequestRouter {
     }
 
     private isSeInfoArrived(store: StoreState) {
-        return this.registered && ! this.lastFetched && store.requestRouter.serviceEngines.lastFetched ||
+        return this.registered && !this.lastFetched && store.requestRouter.serviceEngines.lastFetched ||
                 this.registered && this.lastFetched < store.requestRouter.serviceEngines.lastFetched
     }
 
@@ -78,6 +84,7 @@ export class RequestRouter {
                 // Registered set to false by store and registered locally is true means disconnection
                 console.log('Request router disconnected');
                 this.registered = false;
+                this.stopSe();
             }
             if (this.isRegisterRequired(store)) {
                 // if cc connected and we are not registered

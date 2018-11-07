@@ -1,11 +1,11 @@
 {
-        "http": {
-            "host": "10.10.0.5",
-            "port": 8082
-        },
-        "connector": {
-            "ip": "10.10.0.5",
-            "port": 8080,
-            "url": "cdnhandler/ws"
-        }
+    "http": {
+        "host": "10.10.0.5",
+        "port": 8082
+    },
+    "connector": {
+        "ip": "10.10.0.5",
+        "port": 8080,
+        "url": "cdnhandler/ws"
+    }
 }

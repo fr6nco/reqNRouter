@@ -1,3 +1,6 @@
-import {ControllerConnectorService} from './ControllerEndpointConnectorModule/connector.service';
+import { ControllerConnectorService } from './ControllerEndpointConnectorModule/connector.service';
+import { RequestRouter } from './RequestRouterModule/RequestRouter.service';
+import * as config from 'config';
 
-const ccser = new ControllerConnectorService();
+const rr = new RequestRouter(config.get('http.host'), config.get('http.port'));
+const cc = new ControllerConnectorService();

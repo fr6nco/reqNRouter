@@ -1,9 +1,13 @@
-import { Singleton } from 'typescript-ioc';
+import { Singleton, AutoWired } from 'typescript-ioc';
 import { createStore, Store } from 'redux';
 
 import { requestRouterApp } from './reducer';
 
+/**
+ * We want to use this class as a singleton in DI so we are wrapping arount the Appstore and instantiate the store here.
+ */
 @Singleton
+@AutoWired
 export class AppStore {
     store: Store;
     
@@ -12,7 +16,7 @@ export class AppStore {
     }
     
     public dispatch(action: any) {
-        this.store.dispatch(action);
+        return this.store.dispatch(action);
     }
 
     public subscribe(listener: () => any) {

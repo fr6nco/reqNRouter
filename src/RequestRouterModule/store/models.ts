@@ -12,6 +12,7 @@ export interface RequestRouterStore {
     errormsg: string;
     serviceEngines: {
         isFetching: boolean;
+        isFetchingInitiated: boolean;
         lastFetched: Date | null;
         errored: boolean;
         errormsg: string;

@@ -4,7 +4,8 @@ import {
     RequestRouterActions,
     IntroduceRRRequest,
     IntroduceRRResponse,
-    IntroduceRRFailure
+    IntroduceRRFailure,
+    FetchServiceEnginesResponse
 } from './actions';
 
 import {
@@ -23,6 +24,7 @@ export function requestRouterReducer(
         errormsg: '',
         serviceEngines: {
             isFetching: false,
+            isFetchingInitiated: false,
             lastFetched: null,
             errored: false,
             errormsg: '',
@@ -59,7 +61,7 @@ export function requestRouterReducer(
                 registered: true
             };
         }
-        case RequestRouterActions.FETCH_SERVICE_ENGINES_FAILURE: {
+        case RequestRouterActions.INTRODUCE_RR_FAILURE: {
             return {
                 ...state,
                 registered: false,
@@ -69,6 +71,40 @@ export function requestRouterReducer(
                 errormsg: (<IntroduceRRFailure>action).error
             };
         }
+        case RequestRouterActions.FETCH_SERVICE_ENGINES_REQUEST: {
+            return  {
+                ...state,
+                serviceEngines: {
+                    ...state.serviceEngines,
+                    isFetching: true,
+                    errored: false,
+                    errormsg: ''
+                }
+            }
+        }
+        case RequestRouterActions.FETCH_SERVICE_ENGINES_INIT: {
+            return {
+                ...state,
+                serviceEngines: {
+                    ...state.serviceEngines,
+                    isFetchingInitiated: true
+                }
+            }
+        }
+        case RequestRouterActions.FETCH_SERVICE_ENGINES_RESPONSE: {
+            return {
+                ...state,
+                serviceEngines: {
+                    ...state.serviceEngines,
+                    isFetching: false,
+                    isFetchingInitiated: false,
+                    lastFetched: new Date(),
+                    errored: false,
+                    errormsg: '',
+                    ses: (<FetchServiceEnginesResponse>action).serviceEngines
+                }
+            }
+        }
         case ControllerConnectionActions.SET_DISCONNECTED: {
             return {
                 ...state,
@@ -76,7 +112,12 @@ export function requestRouterReducer(
                 isRegistering: false,
                 isRegisterInitiated: false,
                 errored: false,
-                errormsg: ''
+                errormsg: '',
+                serviceEngines: {
+                    ...state.serviceEngines,
+                    ses: [],
+                    lastFetched: null
+                }
             };
         }
         default: {

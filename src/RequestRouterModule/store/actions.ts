@@ -12,8 +12,11 @@ export enum RequestRouterActions {
 
     // Async call
     FETCH_SERVICE_ENGINES_REQUEST = 'FETCH_SERVICE_ENGINES_REQUEST',
+    FETCH_SERVICE_ENGINES_INIT = 'FETCH_SERVICE_ENGINES_INIT',
     FETCH_SERVICE_ENGINES_RESPONSE = 'FETCH_SERVICE_ENGINES_RESPONSE',
-    FETCH_SERVICE_ENGINES_FAILURE = 'FETCH_SERVICE_ENGINES_FAILURE'
+    FETCH_SERVICE_ENGINES_FAILURE = 'FETCH_SERVICE_ENGINES_FAILURE',
+
+    IMA_DUMMY_ACTION = 'IMA_DUMMY_ACTION'
 }
 
 
@@ -78,8 +81,18 @@ export function fetchServiceEnginesRequest(): FetchServiceEnginesRequest {
     };
 }
 
+// Introduce SE init from cc
+export interface FetchServiceEnginesInit {
+    type: string;
+}
+export function fetchServiceEnginesInit(): FetchServiceEnginesInit {
+    return {
+        type: RequestRouterActions.FETCH_SERVICE_ENGINES_INIT
+    };
+}
+
 // Response action type. Returns service engines
-interface FetchServiceEnginesResponse {
+export interface FetchServiceEnginesResponse {
     type: string;
     serviceEngines: ServiceEngineStore[];
 }
@@ -106,12 +119,23 @@ export function fetchServiceEnginesFailure(
     };
 }
 
+interface ImaDummyAction {
+    type: string;
+}
+export function imaDummyAction(): ImaDummyAction {
+    return  {
+        type: RequestRouterActions.IMA_DUMMY_ACTION
+    }
+}
+
 export type RequestRouterActionTypes =
     | FetchServiceEnginesRequest
+    | FetchServiceEnginesInit
     | FetchServiceEnginesResponse
     | FetchServiceEnginesFailure
     | IntroduceRRFailure
     | IntroduceRRRequest
     | IntroduceRRResponse
     | IntroduceRRInit
+    | ImaDummyAction
 

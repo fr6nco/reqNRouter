@@ -1,8 +1,8 @@
-
+import { ServiceEngineStore } from './store/models';
 /**
  * Class implementation
  */
-export class ServiceEngine {
+export class ServiceEngine implements ServiceEngineStore {
     name: string;
     ip: string;
     port: number;

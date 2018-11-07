@@ -8,7 +8,10 @@ import { setConnected, setDisconnected } from './store/actions';
 import {
     introduceRRInit,
     introduceRRResponse,
-    introduceRRFailure
+    introduceRRFailure,
+    fetchServiceEnginesInit,
+    fetchServiceEnginesResponse,
+    fetchServiceEnginesFailure
 } from '../RequestRouterModule/store/actions';
 
 /**
@@ -31,10 +34,14 @@ export class ControllerConnectorService {
 
         this.wsClient.on('open', () => {
             this.store.dispatch(setConnected(this.url));
+            console.log('Controller Connector service connected to endpoint');
         });
 
         this.wsClient.on('close', () => {
             this.store.dispatch(setDisconnected());
+            console.log(
+                'Controller Connector service disconnected from endpoint'
+            );
         });
     }
 
@@ -51,14 +58,38 @@ export class ControllerConnectorService {
             .catch((err: any) => {
                 this.store.dispatch(introduceRRFailure(err));
             });
-
         this.store.dispatch(introduceRRInit());
+    }
+
+    private fetchSes() {
+        this.wsClient
+            .call('getses')
+            .then((res: { code: number; res: any }) => {
+                if (res.code == 200) {
+                    this.store.dispatch(fetchServiceEnginesResponse(res.res));
+                } else {
+                    this.store.dispatch(fetchServiceEnginesFailure(res.res));
+                }
+            })
+            .catch((err: any) => {
+                this.store.dispatch(fetchServiceEnginesFailure(err));
+            });
+
+        console.log('calling init');
+        this.store.dispatch(fetchServiceEnginesInit());
     }
 
     private isRegisterRequested(store: StoreState) {
         return (
             store.requestRouter.isRegistering &&
             !store.requestRouter.isRegisterInitiated
+        );
+    }
+
+    private isSeFetchRequested(store: StoreState) {
+        return (
+            store.requestRouter.serviceEngines.isFetching &&
+            !store.requestRouter.serviceEngines.isFetchingInitiated
         );
     }
 
@@ -77,6 +108,9 @@ export class ControllerConnectorService {
                     store.requestRouter.ip,
                     store.requestRouter.port
                 );
+            }
+            if (this.isSeFetchRequested(store)) {
+                this.fetchSes();
             }
         });
 

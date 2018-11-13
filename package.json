@@ -19,6 +19,7 @@
     "config": "^2.0.1",
     "redux": "^4.0.1",
     "rpc-websockets": "^4.3.3",
+    "rxjs": "^6.3.3",
     "typescript-ioc": "^1.2.4"
   }
 }

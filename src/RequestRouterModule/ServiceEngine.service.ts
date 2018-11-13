@@ -3,8 +3,6 @@ import { Inject } from 'typescript-ioc';
 import * as config from 'config';
 import * as net from "net"
 
-import { AppStore } from '../Store/store';
-
 /**
  * Class implementation
  */
@@ -13,12 +11,9 @@ export class ServiceEngine implements ServiceEngineStore {
     ip: string;
     port: number;
 
-    tcpsessions: [];
+    tcpsessions: net.Socket[];
 
     connection_limit: number;
-
-    @Inject
-    store: AppStore
 
     private establishConnection() {
         const localAddress: string = config.get('http.host');
@@ -30,35 +25,37 @@ export class ServiceEngine implements ServiceEngineStore {
             localAddress: localAddress
         };
 
-        const socket = net.createConnection(connectionOptions, () => {
+        const socket: net.Socket = net.createConnection(connectionOptions, () => {
             const source_port = socket.localPort;
             console.log(`Connected to Service Engine on ${localAddress}:${source_port} <->${this.ip}:${this.port}`);
-            //TODO add to store
         });
+
+        this.tcpsessions.push(socket);
 
         socket.on('error', (err) => {
             console.log(err);
-            //TODO remove from store
         })
 
         socket.on('close', (hadError) => {
-            console.log(hadError);
-            //TODO remove from store
+            console.log('TCP session disconnected. Haderror?: ', hadError);
+            this.tcpsessions = this.tcpsessions.filter((conn) => conn != socket);
         });
 
         console.log('trying to establish connection');
+    }
+
+    public stopConenctions() {
+        this.tcpsessions.forEach((conn) => {
+            conn.destroy();
+        });
+
+        this.tcpsessions = [];
     }
 
     private handleConnections() {
         if (this.tcpsessions.length < this.connection_limit) {
             this.establishConnection();
         }
-    }
-
-    private listenStoreEvents() {
-        this.store.subscribe(() => {
-            //TODO do the checks here and start a new connection if required       
-        });
     }
 
     constructor(name: string, ip: string, port: number) {
@@ -68,7 +65,6 @@ export class ServiceEngine implements ServiceEngineStore {
 
         this.tcpsessions = [];
         this.connection_limit = 1;
-        this.listenStoreEvents();
         this.handleConnections();
     }
 }

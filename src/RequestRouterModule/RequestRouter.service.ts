@@ -3,6 +3,7 @@ import { Inject } from 'typescript-ioc';
 import { ControllerConnectorService } from '../ControllerEndpointConnectorModule/connector.service';
 import { ControllerConnectorStore } from '../ControllerEndpointConnectorModule/store/models';
 import { ServiceEngineStore } from './store/models';
+import { HttpEndpointModule } from '../HttpEndpointModule/httpendpoint.service';
 
 /**
  * Consider making this a singleton
@@ -19,6 +20,8 @@ export class RequestRouter {
     @Inject
     ccService: ControllerConnectorService;
 
+    @Inject
+    httpServer: HttpEndpointModule;
 
     private register() {
         this.ccService.registerRR(this.ip, this.port).then((name: string) => {
@@ -76,5 +79,7 @@ export class RequestRouter {
         this.registered = false;
 
         this.observeObservers();
+
+        console.log(this.httpServer.port);
     }
 }

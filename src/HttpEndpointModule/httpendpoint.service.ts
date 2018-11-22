@@ -1,6 +1,13 @@
 import * as config from 'config';
 import * as http from 'http';
 import { AutoWired, Singleton } from 'typescript-ioc';
+import { Subject } from 'rxjs';
+
+export interface httpEvent {
+    req: http.IncomingMessage,
+    host: string,
+    port: number
+}
 
 @AutoWired
 @Singleton
@@ -16,11 +23,17 @@ export class HttpEndpointModule {
     port: number;
     server: http.Server;
 
+    public httpEventSubject: Subject<httpEvent>;
+
     private openSocket() {        
         this.server = http.createServer(
             (req: http.IncomingMessage, res: http.ServerResponse) => {
-                console.log(req.headers);
-                console.log('HTTP Request received');
+                this.httpEventSubject.next({
+                    req: req,
+                    host: this.host,
+                    port: this.port
+                });
+
                 res.end();
             }
         );
@@ -40,9 +53,11 @@ export class HttpEndpointModule {
     }
 
     constructor() {
-        console.log('constructing');
         this.host = config.get('http.host');
         this.port = config.get('http.port');
+
+        this.httpEventSubject = new Subject<httpEvent>();
+
         this.openSocket();
     }
 }

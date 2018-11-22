@@ -1,7 +1,8 @@
-import { ServiceEngineStore } from './store/models';
-import { Inject } from 'typescript-ioc';
+import { httpEvent } from '../HttpEndpointModule/httpendpoint.service'
+import { ServiceEngineStore, session } from './store/models';
 import * as config from 'config';
 import * as net from "net"
+import * as http from "http";
 
 /**
  * Class implementation
@@ -12,6 +13,7 @@ export class ServiceEngine implements ServiceEngineStore {
     port: number;
 
     tcpsessions: net.Socket[];
+    agent: http.Agent;
 
     connection_limit: number;
 
@@ -39,6 +41,7 @@ export class ServiceEngine implements ServiceEngineStore {
         socket.on('close', (hadError) => {
             console.log('TCP session disconnected. Haderror?: ', hadError);
             this.tcpsessions = this.tcpsessions.filter((conn) => conn != socket);
+            this.handleConnections();
         });
 
         console.log('trying to establish connection');
@@ -58,10 +61,32 @@ export class ServiceEngine implements ServiceEngineStore {
         }
     }
 
+    public sendRequest(httpEvent: httpEvent, session: session) {
+        this.tcpsessions.forEach((sess: net.Socket) => {
+            if (sess.localAddress == session.src_ip && sess.localPort == session.src_port) {
+                console.log(httpEvent.req.headers);
+
+                // TODO build host here correct Host here
+                const headers = {
+                    ...httpEvent.req.headers,
+                    host: session.dst_ip
+                }
+                const request = http.request({
+                    method: 'GET',
+                    headers: headers,
+                    path: '/',
+                    createConnection: () => { return sess; }
+                });
+                request.end();
+            }
+        });
+    }
+
     constructor(name: string, ip: string, port: number) {
         this.name = name;
         this.ip = ip;
         this.port = port;
+        this.agent = new http.Agent({keepAlive: true});
 
         this.tcpsessions = [];
         this.connection_limit = 1;

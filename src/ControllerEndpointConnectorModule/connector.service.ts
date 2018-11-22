@@ -67,6 +67,19 @@ export class ControllerConnectorService {
         }
     }
 
+    public async getMatchingSess(src_ip: string, src_port: number, dst_ip: string, dst_port: number) {
+        try {
+            const res: {code: number; res: any} = await this.wsClient.call('getmatchingsess', [src_ip, src_port, dst_ip, dst_port])
+            if (res.code == 200) {
+                return res.res;
+            } else {
+                throw res.res;
+            }
+        } catch(err) {
+            throw err;
+        }
+    }
+
     constructor() {
         this.contollerIp = config.get('connector.ip');
         this.controllerPort = config.get('connector.port');

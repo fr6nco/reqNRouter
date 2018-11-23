@@ -2,7 +2,7 @@ import { ServiceEngine } from './ServiceEngine.service';
 import { Inject } from 'typescript-ioc';
 import { ControllerConnectorService } from '../ControllerEndpointConnectorModule/connector.service';
 import { ControllerConnectorStore } from '../ControllerEndpointConnectorModule/store/models';
-import { ServiceEngineStore, session } from './store/models';
+import { ServiceEngineStore, RequestRouterStore, session } from './store/models';
 import * as net from "net"
 import {
     HttpEndpointModule,
@@ -12,10 +12,11 @@ import {
 /**
  * Consider making this a singleton
  */
-export class RequestRouter {
+export class RequestRouter implements RequestRouterStore {
     name: string;
     ip: string;
     port: number;
+    domain: string;
     serviceEngines: ServiceEngine[];
     lastFetched: Date | null;
 
@@ -30,9 +31,10 @@ export class RequestRouter {
     private register() {
         this.ccService
             .registerRR(this.ip, this.port)
-            .then((name: string) => {
+            .then((data:{ name: string; domain: string}) => {
                 this.registered = true;
-                this.name = name;
+                this.name = data.name;
+                this.domain = data.domain;
 
                 if (!this.lastFetched) {
                     this.loadSe();
@@ -53,7 +55,8 @@ export class RequestRouter {
                     const seInstance = new ServiceEngine(
                         se.name,
                         se.ip,
-                        se.port
+                        se.port,
+                        se.domain
                     );
                     this.serviceEngines.push(seInstance);
                 });
@@ -113,7 +116,5 @@ export class RequestRouter {
         this.registered = false;
 
         this.observeObservers();
-
-        console.log(this.httpServer.port);
     }
 }

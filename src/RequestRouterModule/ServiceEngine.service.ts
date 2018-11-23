@@ -11,6 +11,7 @@ export class ServiceEngine implements ServiceEngineStore {
     name: string;
     ip: string;
     port: number;
+    domain: string;
 
     tcpsessions: net.Socket[];
     agent: http.Agent;
@@ -30,6 +31,7 @@ export class ServiceEngine implements ServiceEngineStore {
         const socket: net.Socket = net.createConnection(connectionOptions, () => {
             const source_port = socket.localPort;
             console.log(`Connected to Service Engine on ${localAddress}:${source_port} <->${this.ip}:${this.port}`);
+            this.handleConnections();
         });
 
         this.tcpsessions.push(socket);
@@ -66,15 +68,20 @@ export class ServiceEngine implements ServiceEngineStore {
             if (sess.localAddress == session.src_ip && sess.localPort == session.src_port) {
                 console.log(httpEvent.req.headers);
 
+                console.log(this.port, this.domain);
+                const host = this.port === 80 ? this.domain : `${this.domain}:${this.port}`;
+                console.log(host);
+
                 // TODO build host here correct Host here
                 const headers = {
                     ...httpEvent.req.headers,
-                    host: session.dst_ip
+                    host: host
                 }
+
                 const request = http.request({
                     method: 'GET',
                     headers: headers,
-                    path: '/',
+                    path: httpEvent.req.url,
                     createConnection: () => { return sess; }
                 });
                 request.end();
@@ -82,14 +89,15 @@ export class ServiceEngine implements ServiceEngineStore {
         });
     }
 
-    constructor(name: string, ip: string, port: number) {
+    constructor(name: string, ip: string, port: number, domain: string) {
         this.name = name;
         this.ip = ip;
         this.port = port;
         this.agent = new http.Agent({keepAlive: true});
+        this.domain = domain;
 
         this.tcpsessions = [];
-        this.connection_limit = 1;
+        this.connection_limit = 5;
         this.handleConnections();
     }
 }

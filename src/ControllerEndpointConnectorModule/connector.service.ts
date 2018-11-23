@@ -4,6 +4,7 @@ import { Subject } from 'rxjs';
 import { Singleton, AutoWired } from 'typescript-ioc';
 
 import { ControllerConnectorStore } from './store/models';
+import { session } from '../RequestRouterModule/store/models';
 
 /**
  * Service class, actual magic happens here
@@ -43,7 +44,7 @@ export class ControllerConnectorService {
 
     public async registerRR(ip: string, port: number) {
         try{
-            const res: {code: number; res: string} = await this.wsClient.call('hello', [ip,port])
+            const res: {code: number; res: { name: string; domain: string }} = await this.wsClient.call('hello', [ip,port])
             if (res.code == 200) {
                 return res.res
             } else { 
@@ -69,7 +70,9 @@ export class ControllerConnectorService {
 
     public async getMatchingSess(src_ip: string, src_port: number, dst_ip: string, dst_port: number) {
         try {
-            const res: {code: number; res: any} = await this.wsClient.call('getmatchingsess', [src_ip, src_port, dst_ip, dst_port])
+            const res: {code: number; res: session} = await this.wsClient.call('getmatchingsess', [src_ip, src_port, dst_ip, dst_port])
+            console.log('result from connector');
+            console.log(res);
             if (res.code == 200) {
                 return res.res;
             } else {

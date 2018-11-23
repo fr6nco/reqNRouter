@@ -5,6 +5,14 @@ export interface ServiceEngineStore {
     name: string;
     ip: string;
     port: number;
+    domain: string;
+}
+
+export interface RequestRouterStore {
+    name: string;
+    ip: string;
+    port: number;
+    domain: string;
 }
 
 export interface session {

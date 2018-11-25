@@ -30,7 +30,7 @@ export class ServiceEngine implements ServiceEngineStore {
 
         const socket: net.Socket = net.createConnection(connectionOptions, () => {
             const source_port = socket.localPort;
-            console.log(`Connected to Service Engine on ${localAddress}:${source_port} <->${this.ip}:${this.port}`);
+            console.log(`Connected to Service Engine on ${localAddress}:${source_port}<->${this.ip}:${this.port}`);
             this.handleConnections();
         });
 
@@ -41,7 +41,7 @@ export class ServiceEngine implements ServiceEngineStore {
         })
 
         socket.on('close', (hadError) => {
-            console.log('TCP session disconnected. Haderror?: ', hadError);
+            console.log('TCP session disconnected. Haderror?:', hadError);
             this.tcpsessions = this.tcpsessions.filter((conn) => conn != socket);
             this.handleConnections();
         });
@@ -64,29 +64,32 @@ export class ServiceEngine implements ServiceEngineStore {
     }
 
     public sendRequest(httpEvent: httpEvent, session: session) {
-        this.tcpsessions.forEach((sess: net.Socket) => {
-            if (sess.localAddress == session.src_ip && sess.localPort == session.src_port) {
-                console.log(httpEvent.req.headers);
-
-                console.log(this.port, this.domain);
-                const host = this.port === 80 ? this.domain : `${this.domain}:${this.port}`;
-                console.log(host);
-
-                // TODO build host here correct Host here
-                const headers = {
-                    ...httpEvent.req.headers,
-                    host: host
-                }
-
-                const request = http.request({
-                    method: 'GET',
-                    headers: headers,
-                    path: httpEvent.req.url,
-                    createConnection: () => { return sess; }
-                });
-                request.end();
-            }
+        const sess: net.Socket = this.tcpsessions.find((sess: net.Socket) => {
+            return (sess.localAddress == session.src_ip && sess.localPort == session.src_port)
         });
+        if (sess) {
+            const host = this.port === 80 ? this.domain : `${this.domain}:${this.port}`;
+            const headers = {
+                ...httpEvent.req.headers,
+                host: host
+            }
+            console.log(`Rewriting headers FROM:`);
+            console.log(httpEvent.req.headers);
+            console.log(`TO:`);
+            console.log(headers);
+
+            const request = http.request({
+                method: httpEvent.req.method,
+                headers: headers,
+                path: httpEvent.req.url,
+                createConnection: () => { return sess; }
+            });
+
+            request.end();
+            //Won't produce any return as it will be handovered on Request Router than, RST-ed.
+        } else {
+            console.error(`TCP Session not existing towards SE ${session}`);
+        }
     }
 
     constructor(name: string, ip: string, port: number, domain: string) {
@@ -97,7 +100,7 @@ export class ServiceEngine implements ServiceEngineStore {
         this.domain = domain;
 
         this.tcpsessions = [];
-        this.connection_limit = 5;
+        this.connection_limit = config.get('request_router.se_connection_limit');
         this.handleConnections();
     }
 }

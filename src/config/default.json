@@ -8,5 +8,8 @@
         "ip": "10.10.0.5",
         "port": 8080,
         "url": "cdnhandler/ws"
+    },
+    "request_router": {
+        "se_connection_limit": 3
     }
 }

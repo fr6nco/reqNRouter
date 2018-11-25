@@ -29,14 +29,14 @@ export class HttpEndpointModule {
     private openSocket() {   
         this.server = http.createServer(
             (req: http.IncomingMessage, res: http.ServerResponse) => {
-                if('host' in req.headers && req.headers['host'].startsWith(this.domain)) {
+                if('host' in req.headers && this.domain && req.headers['host'].startsWith(this.domain)) {
                     this.httpEventSubject.next({
                         req: req,
                         host: this.host,
                         port: this.port
                     });
 
-                    //Once handover is done, remove this line
+                    //TODO Once handover is done, remove this line
                     res.end();
                 } else {
                     console.log('Request received for unknown domain. Rejecting');
@@ -60,10 +60,13 @@ export class HttpEndpointModule {
         });
     }
 
+    public setDomain(domain: string) {
+        this.domain = domain;
+    }
+
     constructor() {
         this.host = config.get('http.host');
         this.port = config.get('http.port');
-        this.domain = config.get('http.domain');
 
         this.httpEventSubject = new Subject<httpEvent>();
 

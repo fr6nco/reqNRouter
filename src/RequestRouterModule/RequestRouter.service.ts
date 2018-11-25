@@ -3,7 +3,6 @@ import { Inject } from 'typescript-ioc';
 import { ControllerConnectorService } from '../ControllerEndpointConnectorModule/connector.service';
 import { ControllerConnectorStore } from '../ControllerEndpointConnectorModule/store/models';
 import { ServiceEngineStore, RequestRouterStore, session } from './store/models';
-import * as net from "net"
 import {
     HttpEndpointModule,
     httpEvent
@@ -35,7 +34,8 @@ export class RequestRouter implements RequestRouterStore {
                 this.registered = true;
                 this.name = data.name;
                 this.domain = data.domain;
-
+                this.httpServer.setDomain(this.domain);
+                
                 if (!this.lastFetched) {
                     this.loadSe();
                 }
@@ -95,13 +95,14 @@ export class RequestRouter implements RequestRouterStore {
                     httpEvent.port
                 )
                 .then((session: session) => {
-                    console.log('YAAAAW the matching session will be ', session.src_ip, session.src_port, session.dst_ip, session.dst_port);
-
-                    this.serviceEngines.forEach((se: ServiceEngine) => {
-                        if (se.ip == session.dst_ip && se.port == session.dst_port) {
-                            se.sendRequest(httpEvent, session);
-                        }
-                    });
+                    const se = this.serviceEngines.find((se: ServiceEngine) => {
+                        return (se.ip == session.dst_ip && se.port == session.dst_port)
+                    })
+                    if (se) {
+                        se.sendRequest(httpEvent, session);
+                    } else {
+                        throw new Error('Service engine returned form Controller, however not found in local DB. Serious!');
+                    }
                 })
                 .catch((err) => {
                     console.error('Error occured when getting the matching session ', err);

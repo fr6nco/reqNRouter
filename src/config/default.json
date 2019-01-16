@@ -1,15 +1,15 @@
 {
     "http": {
-        "host": "10.10.0.5",
+        "host": "10.11.0.5",
         "port": 8082,
         "domain": "cdn.example.com"
     },
     "connector": {
-        "ip": "10.10.0.5",
+        "ip": "10.11.0.5",
         "port": 8080,
         "url": "cdnhandler/ws"
     },
     "request_router": {
-        "se_connection_limit": 3
+        "se_connection_limit": 1
     }
 }

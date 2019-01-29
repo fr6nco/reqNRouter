@@ -30,17 +30,11 @@ export class HttpEndpointModule {
         this.server = http.createServer(
             (req: http.IncomingMessage, res: http.ServerResponse) => {
                 if('host' in req.headers && this.domain && req.headers['host'].startsWith(this.domain)) {
-                    console.log('incoming request');
-                    console.log(req.socket.remoteAddress);
-                    console.log(req.socket.remotePort);
                     this.httpEventSubject.next({
                         req: req,
                         host: this.host,
                         port: this.port
                     });
-                    console.log('incoming request');
-
-                    //TODO Once handover is done, remove this line
                 } else {
                     console.log('Request received for unknown domain. Rejecting');
                     console.log(req.headers);
@@ -51,11 +45,7 @@ export class HttpEndpointModule {
 
         this.server.on('clientError', (err, socket) => {
             console.error(err);
-            socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
-        });
-
-        this.server.on('error', (err: Error) => {
-            console.error(err);
+            socket.end('HTTP/1.0 400 Bad Request\r\n\r\n');
         });
 
         this.server.listen(this.port, this.host, () => {

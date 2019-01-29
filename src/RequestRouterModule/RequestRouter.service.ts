@@ -39,12 +39,27 @@ export class RequestRouter implements RequestRouterStore {
                 if (!this.lastFetched) {
                     this.loadSe();
                 }
+
+                // console.log('Starting interval polling to check all sessions');
+                // let timer = setInterval(() => {
+                //     this.getAllSessions();
+                // }, 10000);
             })
             .catch(err => {
                 console.error('Failed to register ', err);
                 this.registered = false;
                 this.name = '';
             });
+    }
+
+    private getAllSessions() {
+        this.ccService.getAllSessions()
+            .then((sessions: any[]) => {
+                console.log(sessions.length);
+            })
+            .catch(err => {
+                console.error('Failed to load all sessions ', err);
+            })
     }
 
     private loadSe() {

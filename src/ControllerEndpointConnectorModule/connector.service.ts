@@ -71,8 +71,21 @@ export class ControllerConnectorService {
     public async getMatchingSess(src_ip: string, src_port: number, dst_ip: string, dst_port: number) {
         try {
             const res: {code: number; res: session} = await this.wsClient.call('getmatchingsess', [src_ip, src_port, dst_ip, dst_port])
-            console.log('result from connector');
-            console.log(res);
+            // console.log('result from connector');
+            // console.log(res);
+            if (res.code == 200) {
+                return res.res;
+            } else {
+                throw res.res;
+            }
+        } catch(err) {
+            throw err;
+        }
+    }
+
+    public async getAllSessions() {
+        try {
+            const res: {code: number; res: any} = await this.wsClient.call('getallsessions');
             if (res.code == 200) {
                 return res.res;
             } else {

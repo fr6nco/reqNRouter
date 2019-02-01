@@ -1,5 +1,5 @@
-import { ControllerConnectorService } from './ControllerEndpointConnectorModule/connector.service';
-import { RequestRouter } from './RequestRouterModule/RequestRouter.service';
-import * as config from 'config';
+import { Container } from 'typescript-ioc';
+import { RequestRouterLauncher } from './launcher';
 
-const rr = new RequestRouter(config.get('http.host'), config.get('http.port'));
+const launcher = Container.get(RequestRouterLauncher);
+launcher.run();

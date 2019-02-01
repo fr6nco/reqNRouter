@@ -1,5 +1,7 @@
-import { httpEvent } from '../HttpEndpointModule/httpendpoint.service'
+import { httpEvent } from '../HttpEndpointModule/store/models';
 import { ServiceEngineStore, session } from './store/models';
+import { LoggerService } from '../LoggerModule/logger.service';
+import { Inject } from 'typescript-ioc';
 import * as config from 'config';
 import * as net from "net"
 import * as http from "http";
@@ -16,6 +18,9 @@ export class ServiceEngine implements ServiceEngineStore {
     tcpsessions: net.Socket[];
     agent: http.Agent;
 
+    @Inject
+    logger: LoggerService;
+
     connection_limit: number;
 
     private establishConnection() {
@@ -29,8 +34,7 @@ export class ServiceEngine implements ServiceEngineStore {
         };
 
         const socket: net.Socket = net.createConnection(connectionOptions, () => {
-            const source_port = socket.localPort;
-            // console.log(`Connected to Service Engine on ${localAddress}:${source_port}<->${this.ip}:${this.port}`);
+            this.logger.debug(`TCP Socket connected to Service Engine: ${localAddress}:${socket.localPort}<->${this.ip}:${this.port}`);
             this.handleConnections();
         });
 
@@ -38,6 +42,10 @@ export class ServiceEngine implements ServiceEngineStore {
 
         socket.on('close', (hadError) => {
             this.tcpsessions = this.tcpsessions.filter((conn) => conn != socket);
+            this.logger.debug(`TCP socket disconnected: ${localAddress}<->${this.ip}:${this.port}`);
+            if(hadError) {
+                this.logger.debug(`Disconnected with ERROR`);
+            }
             this.handleConnections();
         });
     }
@@ -56,36 +64,41 @@ export class ServiceEngine implements ServiceEngineStore {
     }
 
     public sendRequest(httpEvent: httpEvent, session: session) {
+        //Find session
         const sess: net.Socket = this.tcpsessions.find((sess: net.Socket) => {
             return (sess.localAddress == session.src_ip && sess.localPort == session.src_port)
         });
 
         if (sess) {
+            //Prepare host and rewrite it in headers
             const host = this.port === 80 ? this.domain : `${this.domain}:${this.port}`;
             const headers = {
                 ...httpEvent.req.headers,
                 host: host
             }
-            // console.log(`Rewriting headers FROM:`);
-            // console.log(httpEvent.req.headers);
-            // console.log(`TO:`);
-            // console.log(headers);
 
+            //Prepare request
             const request = http.request({
                 method: httpEvent.req.method,
                 headers: headers,
                 path: httpEvent.req.url,
                 createConnection: () => { return sess; }
             });
+
+            //Handle Statistics here
             request.on('error', (err: Error) => {
-                //TODO handle stats here
+                this.logger.debug(`Request Error occured: ${err}`)
             });
 
+            this.logger.debug(`Sending Request to Service engine on ${sess.localAddress}:${sess.localPort}<->${this.ip}:${this.port}`);
+            this.logger.debug(`Rewriting host from ${httpEvent.req.headers.host} to ${headers.host}`);
+
+            //Send request
             request.end(() => {
-                console.log('request sent');
+                this.logger.debug(`Request sent`);
             });
         } else {
-            console.error(`TCP Session not existing towards SE ${session}`);
+            this.logger.error(`TCP Session not existing towards SE ${session}`);
         }
     }
 

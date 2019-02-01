@@ -1,22 +1,30 @@
 const wsc = require('rpc-websockets').Client;
 import * as config from 'config';
 import { Subject } from 'rxjs';
-import { Singleton, AutoWired } from 'typescript-ioc';
+import { Singleton, AutoWired, Inject } from 'typescript-ioc';
 
 import { ControllerConnectorStore } from './store/models';
 import { session } from '../RequestRouterModule/store/models';
+import { LoggerService } from '../LoggerModule/logger.service';
+import { ApiProvider } from '../ApiModule/ApiProviderInterface';
+import * as express from 'express';
 
 /**
  * Service class, actual magic happens here
  */
 @AutoWired
 @Singleton
-export class ControllerConnectorService {
-    contollerIp: String;
+export class ControllerConnectorService implements ApiProvider {
+    moduleName: string;
+    contollerIp: string;
     controllerPort: number;
     wsurl: string;
     url: string;
     wsClient: any;
+    connected: boolean;
+
+    @Inject
+    logger: LoggerService;
 
     public ccEvents: Subject<ControllerConnectorStore>;
 
@@ -30,7 +38,8 @@ export class ControllerConnectorService {
                 connected: true,
                 connectorUrl: this.url
             });
-            console.log('Controller Connector service connected to endpoint');
+            this.connected =  true;
+            this.logger.log('Controller Connector service connected to endpoint');
         });
 
         this.wsClient.on('close', () => {
@@ -38,7 +47,8 @@ export class ControllerConnectorService {
                 connected: false,
                 connectorUrl: ''
             });
-            console.log('Controller Connector service disconnected from endpoint');
+            this.connected = false;
+            this.logger.log('Controller Connector service disconnected from endpoint');
         });
     }
 
@@ -71,8 +81,6 @@ export class ControllerConnectorService {
     public async getMatchingSess(src_ip: string, src_port: number, dst_ip: string, dst_port: number) {
         try {
             const res: {code: number; res: session} = await this.wsClient.call('getmatchingsess', [src_ip, src_port, dst_ip, dst_port])
-            // console.log('result from connector');
-            // console.log(res);
             if (res.code == 200) {
                 return res.res;
             } else {
@@ -95,10 +103,34 @@ export class ControllerConnectorService {
             throw err;
         }
     }
+    
+    /**
+     * Returns the state of the controller API call
+     * @param req 
+     * @param res 
+     */
+    private statusController(req: express.Request, res: express.Response) {
+        res.send({
+            'url': this.url,
+            'connected': this.connected
+        });
+    }
+
+    getModuleName() {
+        return this.moduleName;
+    }
+
+    supplyRoutes() {
+        const router = express.Router();
+        router.get('/status', this.statusController.bind(this));
+        return router;
+    }
 
     constructor() {
+        this.moduleName = 'ControllerConnector';
         this.contollerIp = config.get('connector.ip');
         this.controllerPort = config.get('connector.port');
+        this.connected = false;
         this.wsurl = config.get('connector.url');
         this.url = `http://${this.contollerIp}:${this.controllerPort}/${
             this.wsurl

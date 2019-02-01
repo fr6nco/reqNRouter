@@ -1,16 +1,19 @@
 import { ServiceEngine } from './ServiceEngine.service';
-import { Inject } from 'typescript-ioc';
+import { Inject, Singleton, AutoWired } from 'typescript-ioc';
 import { ControllerConnectorService } from '../ControllerEndpointConnectorModule/connector.service';
 import { ControllerConnectorStore } from '../ControllerEndpointConnectorModule/store/models';
 import { ServiceEngineStore, RequestRouterStore, session } from './store/models';
-import {
-    HttpEndpointModule,
-    httpEvent
-} from '../HttpEndpointModule/httpendpoint.service';
+import { HttpEndpointModule } from '../HttpEndpointModule/httpendpoint.service';
+import { httpEvent } from '../HttpEndpointModule/store/models';
+import { LoggerService } from '../LoggerModule/logger.service';
+
+import * as config from 'config';
 
 /**
  * Consider making this a singleton
  */
+@Singleton
+@AutoWired
 export class RequestRouter implements RequestRouterStore {
     name: string;
     ip: string;
@@ -27,44 +30,50 @@ export class RequestRouter implements RequestRouterStore {
     @Inject
     httpServer: HttpEndpointModule;
 
+    @Inject
+    logger: LoggerService;
+
+    /**
+     * Registers Request Router to controller
+     * Domain is returned from controller, which is set
+     */
     private register() {
-        this.ccService
-            .registerRR(this.ip, this.port)
+        this.ccService.registerRR(this.ip, this.port)
             .then((data:{ name: string; domain: string}) => {
                 this.registered = true;
                 this.name = data.name;
                 this.domain = data.domain;
                 this.httpServer.setDomain(this.domain);
-                
-                if (!this.lastFetched) {
-                    this.loadSe();
-                }
 
-                // console.log('Starting interval polling to check all sessions');
-                // let timer = setInterval(() => {
-                //     this.getAllSessions();
-                // }, 10000);
+                if (!this.lastFetched) {
+                    this.getServiceEngines();
+                }
             })
             .catch(err => {
-                console.error('Failed to register ', err);
+                this.logger.error('Failed to register ' + err);
                 this.registered = false;
                 this.name = '';
             });
     }
 
+    /**
+     * Gets all sessions from the Controller
+     */
     private getAllSessions() {
         this.ccService.getAllSessions()
             .then((sessions: any[]) => {
-                console.log(sessions.length);
+                this.logger.log(sessions.length);
             })
             .catch(err => {
-                console.error('Failed to load all sessions ', err);
+                this.logger.error('Failed to load all sessions ' + err);
             })
     }
 
-    private loadSe() {
-        this.ccService
-            .fetchSes()
+    /**
+     * Loads Service Engines
+     */
+    private getServiceEngines() {
+        this.ccService.fetchSes()
             .then((ses: ServiceEngineStore[]) => {
                 ses.forEach(se => {
                     const seInstance = new ServiceEngine(
@@ -78,10 +87,13 @@ export class RequestRouter implements RequestRouterStore {
                 this.lastFetched = new Date();
             })
             .catch(err => {
-                console.error('Failed to load ses ', err);
+                this.logger.error('Failed to load ses ' + err);
             });
     }
 
+    /**
+     * Stops Service engine, stops each connection and removes from the array.
+     */
     private stopSe() {
         this.serviceEngines.forEach(se => {
             se.stopConenctions();
@@ -89,7 +101,16 @@ export class RequestRouter implements RequestRouterStore {
         this.serviceEngines = [];
     }
 
+
+    /**
+     * Starts observing events
+     */
     private observeObservers() {
+        /**
+         * Once controller connector gets connected and req router is not registered, Register
+         * 
+         * If Controller connector gets disconnected, deregister request router, set lastFetched to null and kill all SEs.
+         */
         this.ccService.ccEvents.subscribe((data: ControllerConnectorStore) => {
             if (data.connected && !this.registered) {
                 this.register();
@@ -101,6 +122,11 @@ export class RequestRouter implements RequestRouterStore {
             }
         });
 
+        /**
+         * Subscribe to HTTP events
+         * 
+         * If incoming HTTP request occures, get matching session from Controller and send request via SE if SE found.
+         */
         this.httpServer.httpEventSubject.subscribe((httpEvent: httpEvent) => {
             this.ccService
                 .getMatchingSess(
@@ -120,14 +146,14 @@ export class RequestRouter implements RequestRouterStore {
                     }
                 })
                 .catch((err) => {
-                    console.error('Error occured when getting the matching session ', err);
+                    this.logger.error('Error occured when getting the matching session ' + err);
                 })
         });
     }
 
     constructor(ip: string, port: number) {
-        this.ip = ip;
-        this.port = port;
+        this.ip = config.get('http.host');
+        this.port = config.get('http.port');
         this.serviceEngines = [];
         this.registered = false;
 

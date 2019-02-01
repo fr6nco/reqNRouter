@@ -1,13 +1,9 @@
 import * as config from 'config';
 import * as http from 'http';
-import { AutoWired, Singleton } from 'typescript-ioc';
+import { AutoWired, Singleton, Inject } from 'typescript-ioc';
 import { Subject } from 'rxjs';
-
-export interface httpEvent {
-    req: http.IncomingMessage,
-    host: string,
-    port: number
-}
+import { LoggerService } from '../LoggerModule/logger.service';
+import { httpEvent } from './store/models';
 
 @AutoWired
 @Singleton
@@ -24,6 +20,9 @@ export class HttpEndpointModule {
     domain: string;
     server: http.Server;
 
+    @Inject
+    logger: LoggerService;
+
     public httpEventSubject: Subject<httpEvent>;
 
     private openSocket() {   
@@ -36,20 +35,20 @@ export class HttpEndpointModule {
                         port: this.port
                     });
                 } else {
-                    console.log('Request received for unknown domain. Rejecting');
-                    console.log(req.headers);
+                    this.logger.error('Request received for unknown domain. Rejecting');
+                    this.logger.error(req.headers);
                     res.end('HTTP/1.1 400 Bad Request\r\n\r\n');
                 }
             }
         );
 
         this.server.on('clientError', (err, socket) => {
-            console.error(err);
+            this.logger.error(err);
             socket.end('HTTP/1.0 400 Bad Request\r\n\r\n');
         });
 
         this.server.listen(this.port, this.host, () => {
-            console.log(`listening on port ${this.port}`);
+            this.logger.info(`listening on port ${this.port}`);
         });
     }
 

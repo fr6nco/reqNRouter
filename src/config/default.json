@@ -11,5 +11,12 @@
     },
     "request_router": {
         "se_connection_limit": 2
+    },
+    "logging": {
+        "level": "info",
+        "destination": "/var/log/rr.log"
+    },
+    "api": {
+        "port": 3000
     }
 }

@@ -103,6 +103,19 @@ export class ControllerConnectorService implements ApiProvider {
             throw err;
         }
     }
+
+    public async getTopology() {
+        try {
+            const res: {code: number; res:any} = await this.wsClient.call('gettopology');
+            if (res.code == 200) {
+                return res.res;
+            } else {
+                throw res.res;
+            }
+        } catch(err) {
+            throw err;
+        }
+    }
     
     /**
      * Returns the state of the controller API call

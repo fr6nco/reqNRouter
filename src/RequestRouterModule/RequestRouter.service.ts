@@ -6,15 +6,18 @@ import { ServiceEngineStore, RequestRouterStore, session } from './store/models'
 import { HttpEndpointModule } from '../HttpEndpointModule/httpendpoint.service';
 import { httpEvent } from '../HttpEndpointModule/store/models';
 import { LoggerService } from '../LoggerModule/logger.service';
+import { ApiProvider } from '../ApiModule/ApiProviderInterface';
 
+import * as express from 'express';
 import * as config from 'config';
+import { timer } from 'rxjs';
 
 /**
  * Consider making this a singleton
  */
 @Singleton
 @AutoWired
-export class RequestRouter implements RequestRouterStore {
+export class RequestRouter implements RequestRouterStore, ApiProvider {
     name: string;
     ip: string;
     port: number;
@@ -32,6 +35,8 @@ export class RequestRouter implements RequestRouterStore {
 
     @Inject
     logger: LoggerService;
+
+    moduleName: string;
 
     /**
      * Registers Request Router to controller
@@ -54,19 +59,6 @@ export class RequestRouter implements RequestRouterStore {
                 this.registered = false;
                 this.name = '';
             });
-    }
-
-    /**
-     * Gets all sessions from the Controller
-     */
-    private getAllSessions() {
-        this.ccService.getAllSessions()
-            .then((sessions: any[]) => {
-                this.logger.log(sessions.length);
-            })
-            .catch(err => {
-                this.logger.error('Failed to load all sessions ' + err);
-            })
     }
 
     /**
@@ -151,11 +143,79 @@ export class RequestRouter implements RequestRouterStore {
         });
     }
 
+    /**
+     * Returns list of established sessions from service engines
+     * @param req 
+     * @param res 
+     */
+    getSessions(req: express.Request, res: express.Response) {
+        this.logger.debug('API: requesting sessions from RR to SEs');
+        const sessions = this.serviceEngines.map((se) => {
+            return {
+                'se_ip': se.ip,
+                'se_port': se.port,
+                'sessions': se.tcpsessions.map((tcp) => {
+                    return {
+                        'src_ip': tcp.localAddress,
+                        'src_port': tcp.localPort,
+                        'dst_ip': tcp.remoteAddress,
+                        'dst_port': tcp.remotePort                    
+                    }
+                })
+            }
+        });
+
+        res.send({
+            'sessions': sessions
+        });
+    }
+
+    /**
+     * Returns list of sessons from the Controller
+     * @param req 
+     * @param res 
+     */
+    async getCntSessions(req: express.Request, res: express.Response) {
+        this.logger.debug('API: requesting CNT sessions');
+        try {
+            const sessions = await this.ccService.getAllSessions();
+            return res.send(sessions);
+        } catch(err) {
+            this.logger.error('Could not get sessions from controller');
+            this.logger.error(err);
+        }
+    }
+
+    async getTopology(req: express.Request, res: express.Response) {
+        this.logger.debug('Requesting Topology from Controller');
+        try {
+            const topology = await this.ccService.getTopology();
+            return res.send(topology);
+        } catch(err) {
+            this.logger.error('Failed to retrieve topology from controller');
+            this.logger.error(err);
+        }
+
+    }
+
+    getModuleName() {
+        return this.moduleName;
+    }
+
+    supplyRoutes() {
+        const router = express.Router();
+        router.get('/sessions', this.getSessions.bind(this));
+        router.get('/sessionscnt', this.getCntSessions.bind(this));
+        router.get('/topology', this.getTopology.bind(this));
+        return router;
+    }
+
     constructor(ip: string, port: number) {
         this.ip = config.get('http.host');
         this.port = config.get('http.port');
         this.serviceEngines = [];
         this.registered = false;
+        this.moduleName = 'RequestRouter';
 
         this.observeObservers();
     }

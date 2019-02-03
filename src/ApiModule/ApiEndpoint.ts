@@ -5,6 +5,7 @@ import * as bodyParser from 'body-parser';
 import { LoggerService } from '../LoggerModule/logger.service';
 
 import { ControllerConnectorService } from '../ControllerEndpointConnectorModule/connector.service';
+import { RequestRouter } from '../RequestRouterModule/RequestRouter.service';
 
 @Singleton
 export class ApiEndpoint {
@@ -18,11 +19,16 @@ export class ApiEndpoint {
         {
             module: "ControllerConnector",
             prefix: '/cc'
+        },
+        {
+            module: "RequestRouter",
+            prefix: '/rr'
         }
     ]
 
     private ApiProviderServices = [
-        Container.get(ControllerConnectorService)
+        Container.get(ControllerConnectorService),
+        Container.get(RequestRouter)
     ]
 
     public setRouting() {

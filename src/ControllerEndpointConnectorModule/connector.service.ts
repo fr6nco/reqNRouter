@@ -1,4 +1,5 @@
 const wsc = require('rpc-websockets').Client;
+// import * as rpc from 'rpc-websockets';
 import * as config from 'config';
 import { Subject } from 'rxjs';
 import { Singleton, AutoWired, Inject } from 'typescript-ioc';

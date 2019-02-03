@@ -8,12 +8,6 @@ import { httpEvent } from './store/models';
 @AutoWired
 @Singleton
 export class HttpEndpointModule {
-    /**
-     *   "http": {
-     *       "host": "10.10.0.5",
-     *       "port": 8082
-     *   },
-     */
 
     host: string;
     port: number;

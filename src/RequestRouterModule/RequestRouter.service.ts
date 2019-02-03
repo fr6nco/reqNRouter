@@ -154,6 +154,7 @@ export class RequestRouter implements RequestRouterStore, ApiProvider {
             return {
                 'se_ip': se.ip,
                 'se_port': se.port,
+                'se_name': se.name,
                 'sessions': se.tcpsessions.map((tcp) => {
                     return {
                         'src_ip': tcp.localAddress,
@@ -167,6 +168,28 @@ export class RequestRouter implements RequestRouterStore, ApiProvider {
 
         res.send({
             'sessions': sessions
+        });
+    }
+
+    getAssets(req: express.Request, res: express.Response) {
+        this.logger.debug('API: requesting Assets');
+        const data = {
+            'ip': this.ip,
+            'port': this.port,
+            'name': this.name,
+            'domain': this.domain,
+            'ses': this.serviceEngines.map((se) => {
+                return  {
+                    'ip': se.ip,
+                    'port': se.port,
+                    'name': se.name,
+                    'domain': se.domain
+                }
+            })
+        }
+
+        res.send({
+            'rr': data
         });
     }
 
@@ -195,7 +218,6 @@ export class RequestRouter implements RequestRouterStore, ApiProvider {
             this.logger.error('Failed to retrieve topology from controller');
             this.logger.error(err);
         }
-
     }
 
     getModuleName() {
@@ -207,6 +229,7 @@ export class RequestRouter implements RequestRouterStore, ApiProvider {
         router.get('/sessions', this.getSessions.bind(this));
         router.get('/sessionscnt', this.getCntSessions.bind(this));
         router.get('/topology', this.getTopology.bind(this));
+        router.get('/assets', this.getAssets.bind(this));
         return router;
     }
 

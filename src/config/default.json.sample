@@ -5,12 +5,12 @@
         "domain": "cdn.example.com"
     },
     "connector": {
-        "ip": "10.11.0.5",
+        "ip": "192.168.56.6",
         "port": 8080,
         "url": "cdnhandler/ws"
     },
     "request_router": {
-        "se_connection_limit": 2
+        "se_connection_limit": 10
     },
     "logging": {
         "level": "info",

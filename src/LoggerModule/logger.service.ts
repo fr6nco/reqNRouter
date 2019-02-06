@@ -29,17 +29,11 @@ export class LoggerService {
             format: winston.format.json()
         });
 
-        this.logger.add(new winston.transports.File({
-            filename: config.get('logging.destination')
-        }));
-
-        if (process.env.NODE_ENV !== 'production') {
-            this.logger.add(
-                new winston.transports.Console({
-                    format: winston.format.simple()
-                })
-            );
-        }
+        this.logger.add(
+            new winston.transports.Console({
+                format: winston.format.simple()
+            })
+        );
 
         if (process.env.NODE_LOGLEVEL === 'debug') {
             this.logger.level = 'debug';

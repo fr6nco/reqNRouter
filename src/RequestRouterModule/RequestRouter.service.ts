@@ -11,6 +11,7 @@ import { ApiProvider } from '../ApiModule/ApiProviderInterface';
 import * as express from 'express';
 import * as config from 'config';
 import { timer } from 'rxjs';
+import { http } from 'winston';
 
 /**
  * Consider making this a singleton
@@ -139,6 +140,8 @@ export class RequestRouter implements RequestRouterStore, ApiProvider {
                 })
                 .catch((err) => {
                     this.logger.error('Error occured when getting the matching session ' + err);
+                    this.logger.error(httpEvent.req.socket.remoteAddress);
+                    this.logger.error(httpEvent.req.socket.remotePort);
                 })
         });
     }

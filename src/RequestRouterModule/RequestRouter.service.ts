@@ -15,7 +15,7 @@ import { ApiProvider } from '../ApiModule/ApiProviderInterface';
 import * as express from 'express';
 import * as config from 'config';
 import { from } from 'rxjs';
-import { take, retryWhen, delay, mergeMap } from 'rxjs/operators';
+import { take, retryWhen, delay, tap } from 'rxjs/operators';
 
 /**
  * Consider making this a singleton
@@ -147,6 +147,7 @@ export class RequestRouter implements RequestRouterStore, ApiProvider {
                 httpEvent.port
             )).pipe(
                 retryWhen(error => error.pipe(
+                    tap(error => this.logger.error(`Error occured when getting the matching sess ${error}`)),
                     delay(config.get('request_router.get_matching_sess_retry_delay')),
                     take(config.get('request_router.get_matching_sess_retries'))
                 ))

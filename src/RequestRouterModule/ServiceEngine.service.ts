@@ -37,6 +37,7 @@ export class ServiceEngine implements ServiceEngineStore {
             this.logger.debug(`TCP Socket connected to Service Engine: ${localAddress}:${socket.localPort}<->${this.ip}:${this.port}`);
             this.handleConnections();
         });
+        this.logger.debug(`Trying to establish a new connection`);
 
         this.tcpsessions.push(socket);
 

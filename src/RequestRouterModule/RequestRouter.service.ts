@@ -149,7 +149,7 @@ export class RequestRouter implements RequestRouterStore, ApiProvider {
                 retryWhen(error => error.pipe(
                     tap(error => this.logger.error(`Error occured when getting the matching sess ${error}`)),
                     delay(config.get('request_router.get_matching_sess_retry_delay')),
-                    takeUntil(config.get('request_router.get_matching_sess_retries'))
+                    take(config.get('request_router.get_matching_sess_retries'))
                 ))
             ).subscribe((session: session) => {
                 this.sendRequestCb(httpEvent, session);

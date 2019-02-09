@@ -14,8 +14,8 @@ import { ApiProvider } from '../ApiModule/ApiProviderInterface';
 
 import * as express from 'express';
 import * as config from 'config';
-import { from } from 'rxjs';
-import { take, retryWhen, delay, tap } from 'rxjs/operators';
+import { from, of, defer } from 'rxjs';
+import { take, retryWhen, delay, tap, takeUntil, catchError } from 'rxjs/operators';
 
 /**
  * Consider making this a singleton
@@ -140,7 +140,7 @@ export class RequestRouter implements RequestRouterStore, ApiProvider {
          */
         this.httpServer.httpEventSubject.subscribe((httpEvent: httpEvent) => {
 
-            from(this.ccService.getMatchingSess(
+            defer(() => this.ccService.getMatchingSess(
                 httpEvent.req.socket.remoteAddress,
                 httpEvent.req.socket.remotePort,
                 httpEvent.host,
@@ -149,12 +149,13 @@ export class RequestRouter implements RequestRouterStore, ApiProvider {
                 retryWhen(error => error.pipe(
                     tap(error => this.logger.error(`Error occured when getting the matching sess ${error}`)),
                     delay(config.get('request_router.get_matching_sess_retry_delay')),
-                    take(config.get('request_router.get_matching_sess_retries'))
+                    takeUntil(config.get('request_router.get_matching_sess_retries'))
                 ))
             ).subscribe((session: session) => {
                 this.sendRequestCb(httpEvent, session);
             })
         });
+
     }
 
     /**

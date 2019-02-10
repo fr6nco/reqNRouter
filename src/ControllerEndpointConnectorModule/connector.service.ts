@@ -10,6 +10,11 @@ import { LoggerService } from '../LoggerModule/logger.service';
 import { ApiProvider } from '../ApiModule/ApiProviderInterface';
 import * as express from 'express';
 
+export enum NodeType {
+    rr ='rr',
+    se ='se'
+}
+
 /**
  * Service class, actual magic happens here
  */
@@ -114,6 +119,21 @@ export class ControllerConnectorService implements ApiProvider {
                 throw res.res;
             }
         } catch(err) {
+            throw err;
+        }
+    }
+
+    public async sendRequestSize(src_ip: string, src_port: number, dst_ip: string, dst_port: number, type: NodeType, size: number) {
+        try {
+            const res: {code: number; res:any} = await this.wsClient.call('setrequestsize', [src_ip, src_port, dst_ip, dst_port, type, size]);
+            if (res.code == 200) {
+                return res.res;
+            } else {
+                this.logger.error(res);
+                throw res.res;
+            }
+        } catch(err) {
+            this.logger.error(err);
             throw err;
         }
     }

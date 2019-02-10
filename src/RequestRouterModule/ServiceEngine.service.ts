@@ -5,6 +5,7 @@ import { Inject } from 'typescript-ioc';
 import * as config from 'config';
 import * as net from "net"
 import * as http from "http";
+import { ControllerConnectorService, NodeType } from '../ControllerEndpointConnectorModule/connector.service';
 
 /**
  * Class implementation
@@ -20,6 +21,9 @@ export class ServiceEngine implements ServiceEngineStore {
 
     @Inject
     logger: LoggerService;
+
+    @Inject
+    ccService: ControllerConnectorService
 
     connection_limit: number;
 
@@ -64,7 +68,7 @@ export class ServiceEngine implements ServiceEngineStore {
         }
     }
 
-    public sendRequest(httpEvent: httpEvent, session: session) {
+    public async sendRequest(httpEvent: httpEvent, session: session) {
         //Find session
         const sess: net.Socket = this.tcpsessions.find((sess: net.Socket) => {
             return (sess.localAddress == session.src_ip && sess.localPort == session.src_port)
@@ -72,7 +76,16 @@ export class ServiceEngine implements ServiceEngineStore {
 
         if (sess) {
             //Prepare host and rewrite it in headers
+            //This is a very ugly was of calculating the difference between the two request sizes.. I'm not proud of it
             const host = this.port === 80 ? this.domain : `${this.domain}:${this.port}`;
+            const hostdiff = host.length - httpEvent.req.headers.host.length;
+            const connheader = "Connection: close\r\n";
+            const newrequestSize = httpEvent.reqSize + hostdiff + connheader.length;
+            this.logger.debug(`New request size will be ${newrequestSize}`);
+
+            //We want to wait for this, otherwise handover wont work
+            await this.ccService.sendRequestSize(sess.localAddress, sess.localPort, sess.remoteAddress, sess.remotePort, NodeType.se, newrequestSize);
+
             const headers = {
                 ...httpEvent.req.headers,
                 host: host
@@ -86,7 +99,6 @@ export class ServiceEngine implements ServiceEngineStore {
                 createConnection: () => { return sess; }
             });
 
-            //Handle Statistics here
             request.on('error', (err: Error) => {
                 this.logger.debug(`Request Error occured: ${err}`)
             });
@@ -97,6 +109,7 @@ export class ServiceEngine implements ServiceEngineStore {
             //Send request
             request.end(() => {
                 this.logger.debug(`Request sent`);
+                this.logger.debug(`SENT bytes: ${sess.bytesWritten}`)
             });
         } else {
             this.logger.error(`TCP Session not existing towards SE ${session}`);

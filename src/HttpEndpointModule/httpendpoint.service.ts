@@ -1,14 +1,19 @@
 import * as config from 'config';
 import * as http from 'http';
+import * as net from 'net';
 import { AutoWired, Singleton, Inject } from 'typescript-ioc';
 import { Subject } from 'rxjs';
 import { LoggerService } from '../LoggerModule/logger.service';
 import { httpEvent } from './store/models';
+import { ControllerConnectorService } from '../ControllerEndpointConnectorModule/connector.service';
+import { NodeType } from '../ControllerEndpointConnectorModule/connector.service';
+
+import * as getRawBody from 'raw-body';
+const parser = require('http-string-parser');
 
 @AutoWired
 @Singleton
 export class HttpEndpointModule {
-
     host: string;
     port: number;
     domain: string;
@@ -17,28 +22,30 @@ export class HttpEndpointModule {
     @Inject
     logger: LoggerService;
 
+    @Inject
+    ccService: ControllerConnectorService;
+
     public httpEventSubject: Subject<httpEvent>;
 
-    private openSocket() {   
-        this.server = http.createServer(
-            (req: http.IncomingMessage, res: http.ServerResponse) => {
-                if('host' in req.headers && this.domain && req.headers['host'].startsWith(this.domain)) {
-                    this.httpEventSubject.next({
-                        req: req,
-                        host: this.host,
-                        port: this.port
-                    });
-                } else {
-                    this.logger.error('Request received for unknown domain. Rejecting');
-                    this.logger.error(req.headers);
-                    res.end('HTTP/1.1 400 Bad Request\r\n\r\n');
-                }
-            }
-        );
+    private openSocket() {
+        this.server = http.createServer(async (req, res) => {
+            const socket = req.socket;
+            await this.ccService.sendRequestSize(socket.remoteAddress, socket.remotePort, socket.localAddress, socket.localPort, NodeType.rr, socket.bytesRead);
 
-        this.server.on('clientError', (err, socket) => {
-            this.logger.error(err);
-            socket.end('HTTP/1.0 400 Bad Request\r\n\r\n');
+            if ('host' in req.headers && this.domain && req.headers['host'].startsWith(this.domain)) {
+                this.httpEventSubject.next({
+                    req: req,
+                    reqSize: socket.bytesRead,
+                    host: this.host,
+                    port: this.port
+                });            
+            } else {
+                this.logger.error(
+                    'Request received for unknown domain. Rejecting'
+                );
+                this.logger.error(req.headers);
+                res.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+            }
         });
 
         this.server.listen(this.port, this.host, () => {

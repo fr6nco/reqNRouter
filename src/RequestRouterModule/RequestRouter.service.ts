@@ -139,7 +139,6 @@ export class RequestRouter implements RequestRouterStore, ApiProvider {
          * If incoming HTTP request occures, get matching session from Controller and send request via SE if SE found.
          */
         this.httpServer.httpEventSubject.subscribe((httpEvent: httpEvent) => {
-
             defer(() => this.ccService.getMatchingSess(
                 httpEvent.req.socket.remoteAddress,
                 httpEvent.req.socket.remotePort,

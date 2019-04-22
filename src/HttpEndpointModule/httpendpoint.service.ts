@@ -1,15 +1,11 @@
 import * as config from 'config';
 import * as http from 'http';
-import * as net from 'net';
 import { AutoWired, Singleton, Inject } from 'typescript-ioc';
 import { Subject } from 'rxjs';
 import { LoggerService } from '../LoggerModule/logger.service';
 import { httpEvent } from './store/models';
 import { ControllerConnectorService } from '../ControllerEndpointConnectorModule/connector.service';
 import { NodeType } from '../ControllerEndpointConnectorModule/connector.service';
-
-import * as getRawBody from 'raw-body';
-const parser = require('http-string-parser');
 
 @AutoWired
 @Singleton

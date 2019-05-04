@@ -17,7 +17,6 @@ export class ServiceEngine implements ServiceEngineStore {
     domain: string;
 
     tcpsessions: net.Socket[];
-    agent: http.Agent;
 
     @Inject
     logger: LoggerService;
@@ -108,11 +107,19 @@ export class ServiceEngine implements ServiceEngineStore {
             this.logger.debug(`Sending Request to Service engine on ${sess.localAddress}:${sess.localPort}<->${this.ip}:${this.port}`);
             this.logger.debug(`Rewriting host from ${httpEvent.req.headers.host} to ${headers.host}`);
 
-            //Send request
-            request.end(() => {
-                this.logger.debug(`Request sent`);
-                this.logger.debug(`SENT bytes: ${sess.bytesWritten}`)
+            request.write("", (err: Error) => {
+                if (err) {
+                    this.logger.error(err);
+                } else {
+                    this.logger.info('Written');
+                }
             });
+
+            // //Send request
+            // request.end(() => {
+            //     this.logger.debug(`Request sent`);
+            //     this.logger.debug(`SENT bytes: ${sess.bytesWritten}`)
+            // });
         } else {
             this.logger.error(`TCP Session not existing towards SE ${session}`);
         }
@@ -122,7 +129,6 @@ export class ServiceEngine implements ServiceEngineStore {
         this.name = name;
         this.ip = ip;
         this.port = port;
-        this.agent = new http.Agent({keepAlive: true});
         this.domain = domain;
 
         this.tcpsessions = [];

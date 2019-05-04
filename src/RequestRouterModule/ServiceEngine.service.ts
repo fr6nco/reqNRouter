@@ -18,6 +18,8 @@ export class ServiceEngine implements ServiceEngineStore {
 
     tcpsessions: net.Socket[];
 
+    agent: http.Agent;
+
     @Inject
     logger: LoggerService;
 
@@ -41,8 +43,6 @@ export class ServiceEngine implements ServiceEngineStore {
             this.handleConnections();
         });
         this.logger.debug(`Trying to establish a new connection`);
-
-        socket.setKeepAlive(true);
 
         this.tcpsessions.push(socket);
 
@@ -80,8 +80,8 @@ export class ServiceEngine implements ServiceEngineStore {
             //This is a very ugly was of calculating the difference between the two request sizes.. I'm not proud of it
             const host = this.port === 80 ? this.domain : `${this.domain}:${this.port}`;
             const hostdiff = host.length - httpEvent.req.headers.host.length;
-            // const connheader = "Connection: close\r\n";
-            const newrequestSize = httpEvent.reqSize + hostdiff; // + connheader.length;
+            const connheader = "Connection: keep-alive\r\n";
+            const newrequestSize = httpEvent.reqSize + hostdiff + connheader.length;
             this.logger.debug(`New request size will be ${newrequestSize}`);
 
             //We want to wait for this, otherwise handover wont work
@@ -89,7 +89,8 @@ export class ServiceEngine implements ServiceEngineStore {
 
             const headers = {
                 ...httpEvent.req.headers,
-                host: host
+                host: host,
+                connection: 'keep-alive'
             }
 
             //Prepare request
@@ -124,9 +125,16 @@ export class ServiceEngine implements ServiceEngineStore {
         this.ip = ip;
         this.port = port;
         this.domain = domain;
-
+        
         this.tcpsessions = [];
+
         this.connection_limit = config.get('request_router.se_connection_limit');
+
+        this.agent = new http.Agent({
+            keepAlive: true,
+            maxSockets: this.connection_limit
+        });
+
         this.handleConnections();
     }
 }

@@ -79,8 +79,8 @@ export class ServiceEngine implements ServiceEngineStore {
             //This is a very ugly was of calculating the difference between the two request sizes.. I'm not proud of it
             const host = this.port === 80 ? this.domain : `${this.domain}:${this.port}`;
             const hostdiff = host.length - httpEvent.req.headers.host.length;
-            const connheader = "Connection: close\r\n";
-            const newrequestSize = httpEvent.reqSize + hostdiff + connheader.length;
+            // const connheader = "Connection: close\r\n";
+            const newrequestSize = httpEvent.reqSize + hostdiff; // + connheader.length;
             this.logger.debug(`New request size will be ${newrequestSize}`);
 
             //We want to wait for this, otherwise handover wont work
@@ -98,6 +98,8 @@ export class ServiceEngine implements ServiceEngineStore {
                 path: httpEvent.req.url,
                 createConnection: () => { return sess; }
             });
+
+            request.setSocketKeepAlive(true);
 
             request.on('error', (err: Error) => {
                 this.logger.debug(`Request Error occured: ${err}`)

@@ -42,6 +42,8 @@ export class ServiceEngine implements ServiceEngineStore {
         });
         this.logger.debug(`Trying to establish a new connection`);
 
+        socket.setKeepAlive(true);
+
         this.tcpsessions.push(socket);
 
         socket.on('close', (hadError) => {
@@ -107,19 +109,11 @@ export class ServiceEngine implements ServiceEngineStore {
             this.logger.debug(`Sending Request to Service engine on ${sess.localAddress}:${sess.localPort}<->${this.ip}:${this.port}`);
             this.logger.debug(`Rewriting host from ${httpEvent.req.headers.host} to ${headers.host}`);
 
-            request.write("", (err: Error) => {
-                if (err) {
-                    this.logger.error(err);
-                } else {
-                    this.logger.info('Written');
-                }
+            //Send request
+            request.end(() => {
+                this.logger.debug(`Request sent`);
+                this.logger.debug(`SENT bytes: ${sess.bytesWritten}`)
             });
-
-            // //Send request
-            // request.end(() => {
-            //     this.logger.debug(`Request sent`);
-            //     this.logger.debug(`SENT bytes: ${sess.bytesWritten}`)
-            // });
         } else {
             this.logger.error(`TCP Session not existing towards SE ${session}`);
         }

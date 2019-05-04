@@ -16,6 +16,8 @@ export class ServiceEngine implements ServiceEngineStore {
     port: number;
     domain: string;
 
+    keepalive: boolean;
+
     tcpsessions: net.Socket[];
 
     agent: http.Agent;
@@ -80,18 +82,28 @@ export class ServiceEngine implements ServiceEngineStore {
             //This is a very ugly was of calculating the difference between the two request sizes.. I'm not proud of it
             const host = this.port === 80 ? this.domain : `${this.domain}:${this.port}`;
             const hostdiff = host.length - httpEvent.req.headers.host.length;
-            const connheader = "Connection: keep-alive\r\n";
+
+            let headers = {
+                ...httpEvent.req.headers,
+                host: host
+            }
+
+            let connheader = "";
+            if (this.keepalive) {
+                connheader = "Connection: keep-alive\r\n";
+                headers = {
+                    ...headers,
+                    connection: 'keep-alive'
+                }
+            } else {
+                connheader = "Connection: close\r\n";
+            }
+
             const newrequestSize = httpEvent.reqSize + hostdiff + connheader.length;
             this.logger.debug(`New request size will be ${newrequestSize}`);
 
             //We want to wait for this, otherwise handover wont work
             await this.ccService.sendRequestSize(sess.localAddress, sess.localPort, sess.remoteAddress, sess.remotePort, NodeType.se, newrequestSize);
-
-            const headers = {
-                ...httpEvent.req.headers,
-                host: host,
-                connection: 'keep-alive'
-            }
 
             //Prepare request
             const request = http.request({
@@ -100,8 +112,6 @@ export class ServiceEngine implements ServiceEngineStore {
                 path: httpEvent.req.url,
                 createConnection: () => { return sess; }
             });
-
-            request.setSocketKeepAlive(true);
 
             request.on('error', (err: Error) => {
                 this.logger.debug(`Request Error occured: ${err}`)
@@ -129,6 +139,7 @@ export class ServiceEngine implements ServiceEngineStore {
         this.tcpsessions = [];
 
         this.connection_limit = config.get('request_router.se_connection_limit');
+        this.keepalive = config.get('request_router.keepalive');
 
         this.agent = new http.Agent({
             keepAlive: true,
